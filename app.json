@@ -8,7 +8,8 @@
     "scheme": "meals",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "icon": "./assets/expo.icon",
+      "bundleIdentifier": "com.sierra55555.meals"
     },
     "android": {
       "adaptiveIcon": {
@@ -17,13 +18,15 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.sierra55555.meals"
     },
     "web": {
       "output": "static",
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
+      "@react-native-vector-icons/ionicons",
       "expo-router",
       [
         "expo-splash-screen",
@@ -32,11 +35,19 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
         }
-      ]
+      ],
+      "expo-font"
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "db2a76d6-7aeb-4787-a29e-48fb62a08467"
+      }
+    },
+    "owner": "sierra55555s-team"
   }
 }

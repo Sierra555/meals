@@ -36,12 +36,11 @@ export const globalStyles = StyleSheet.create({
 		fontSize: 24,
 		fontWeight: "600",
 		color: colors.primary,
-		marginTop: 30,
-		marginBottom: 16,
 	},
 	empty: {
 		color: colors.textSecondary,
 		fontSize: 14,
+		paddingInlineStart: 20,
 	},
 	header: {
 		flexDirection: "row",

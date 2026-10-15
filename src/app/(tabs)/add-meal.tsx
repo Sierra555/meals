@@ -1,12 +1,17 @@
 import Header from "@/components/Header";
+import ImageButton from "@/components/ImageButton";
 import ScreenBackground from "@/components/ScreenBackground";
+import { mealSchema } from "@/schemas/MealSchema";
+import { addMeal } from "@/storage/meals";
 import { colors, globalStyles } from "@/styles/global";
 import Ionicons from "@react-native-vector-icons/ionicons";
-import * as ImagePicker from "expo-image-picker";
+import * as Haptics from "expo-haptics";
+import { router } from "expo-router";
 import { useState } from "react";
 import {
 	Alert,
 	Image,
+	ScrollView,
 	StyleSheet,
 	Text,
 	TextInput,
@@ -23,9 +28,12 @@ export default function AddMealScreen() {
 	const [imageUri, setImageUri] = useState<string | null>(
 		null
 	);
+	const [errors, setErrors] = useState<
+		Record<string, string>
+	>({});
 
-	const handleAddMeal = () => {
-		console.log({
+	const handleAddMeal = async () => {
+		const result = mealSchema.safeParse({
 			name,
 			calories,
 			protein,
@@ -33,69 +41,78 @@ export default function AddMealScreen() {
 			fat,
 			imageUri,
 		});
-	};
 
-	const pickImage = async () => {
-		const result =
-			await ImagePicker.launchImageLibraryAsync({
-				mediaTypes: ["images"],
-				allowsEditing: true,
-				aspect: [1, 1],
-				quality: 0.8,
+		if (!result.success) {
+			const fieldErrors: Record<string, string> = {};
+			result.error.issues.forEach((error) => {
+				const field = error.path[0];
+
+				if (typeof field === "string") {
+					fieldErrors[field] = error.message;
+				}
 			});
 
-		if (!result.canceled) {
-			setImageUri(result.assets[0].uri);
-		}
-	};
-
-	const takePhoto = async () => {
-		const permission =
-			await ImagePicker.requestCameraPermissionsAsync();
-
-		if (!permission.granted) {
-			Alert.alert(
-				"Camera permission",
-				"Please allow camera access to take a photo."
-			);
+			setErrors(fieldErrors);
 			return;
 		}
+		await addMeal(result.data);
 
-		const result = await ImagePicker.launchCameraAsync({
-			mediaTypes: ["images"],
-			allowsEditing: true,
-			aspect: [1, 1],
-			quality: 0.8,
-		});
+		setName("");
+		setCalories("");
+		setProtein("");
+		setCarbs("");
+		setFat("");
+		setImageUri("");
 
-		if (!result.canceled) {
-			setImageUri(result.assets[0].uri);
-		}
+		Alert.alert("Success", "Meal added successfully!");
+		Haptics.notificationAsync(
+			Haptics.NotificationFeedbackType.Success
+		);
+
+		router.push("/");
 	};
 
 	return (
 		<ScreenBackground>
-			<View style={globalStyles.container}>
+			<ScrollView
+				style={globalStyles.container}
+				showsVerticalScrollIndicator={false}
+			>
 				<Header
 					title="Add Meal"
 					date={false}
 				/>
 
 				<TextInput
-					style={styles.input}
+					style={[
+						styles.input,
+						errors.name && styles.error,
+					]}
 					placeholder="Meal name"
 					placeholderTextColor={colors.textSecondary}
 					value={name}
-					onChangeText={setName}
+					onChangeText={(value) => {
+						setName(value);
+						setErrors((prev) => ({ ...prev, name: "" }));
+					}}
 				/>
 
 				<TextInput
-					style={styles.input}
+					style={[
+						styles.input,
+						errors.calories && styles.error,
+					]}
 					placeholder="Calories"
 					placeholderTextColor={colors.textSecondary}
-					keyboardType="numeric"
+					keyboardType="decimal-pad"
 					value={calories}
-					onChangeText={setCalories}
+					onChangeText={(value) => {
+						setCalories(value);
+						setErrors((prev) => ({
+							...prev,
+							calories: "",
+						}));
+					}}
 				/>
 
 				<View style={styles.row}>
@@ -103,7 +120,7 @@ export default function AddMealScreen() {
 						style={[styles.input, styles.rowInput]}
 						placeholder="Protein (g)"
 						placeholderTextColor={colors.textSecondary}
-						keyboardType="numeric"
+						keyboardType="decimal-pad"
 						value={protein}
 						onChangeText={setProtein}
 					/>
@@ -112,7 +129,7 @@ export default function AddMealScreen() {
 						style={[styles.input, styles.rowInput]}
 						placeholder="Carbs (g)"
 						placeholderTextColor={colors.textSecondary}
-						keyboardType="numeric"
+						keyboardType="decimal-pad"
 						value={carbs}
 						onChangeText={setCarbs}
 					/>
@@ -121,41 +138,27 @@ export default function AddMealScreen() {
 						style={[styles.input, styles.rowInput]}
 						placeholder="Fat (g)"
 						placeholderTextColor={colors.textSecondary}
-						keyboardType="numeric"
+						keyboardType="decimal-pad"
 						value={fat}
 						onChangeText={setFat}
 					/>
 				</View>
 				<View style={styles.photoButtons}>
-					<TouchableOpacity
-						style={styles.photoButton}
-						onPress={takePhoto}
-					>
-						<Ionicons
-							name="camera-outline"
-							size={20}
-							color={colors.primary}
-						/>
-						<Text style={styles.photoButtonText}>
-							Take Photo
-						</Text>
-					</TouchableOpacity>
+					<ImageButton
+						action="take"
+						setImageUri={setImageUri}
+						icon="camera-outline"
+						label="Take Photo"
+					/>
 
-					<TouchableOpacity
-						style={styles.photoButton}
-						onPress={pickImage}
-					>
-						<Ionicons
-							name="images-outline"
-							size={20}
-							color={colors.primary}
-						/>
-						<Text style={styles.photoButtonText}>
-							Gallery
-						</Text>
-					</TouchableOpacity>
+					<ImageButton
+						action="pick"
+						setImageUri={setImageUri}
+						icon="images-outline"
+						label="Gallery"
+					/>
 				</View>
-				<View style={{ height: 80 }}>
+				<View style={styles.imagePlaceholder}>
 					{imageUri && (
 						<View style={styles.imageContainer}>
 							<Image
@@ -184,7 +187,7 @@ export default function AddMealScreen() {
 				>
 					<Text style={styles.buttonText}>Add Meal</Text>
 				</TouchableOpacity>
-			</View>
+			</ScrollView>
 		</ScreenBackground>
 	);
 }
@@ -215,6 +218,10 @@ const styles = StyleSheet.create({
 		marginTop: 24,
 		marginBottom: 35,
 	},
+	imagePlaceholder: {
+		height: 104,
+		justifyContent: "center",
+	},
 	imageContainer: {
 		position: "relative",
 		width: 80,
@@ -238,21 +245,6 @@ const styles = StyleSheet.create({
 		gap: 12,
 		marginTop: 12,
 	},
-	photoButton: {
-		flex: 1,
-		flexDirection: "row",
-		alignItems: "center",
-		justifyContent: "center",
-		gap: 8,
-		paddingVertical: 14,
-		backgroundColor: "#EAF3FF",
-		borderRadius: 10,
-	},
-	photoButtonText: {
-		color: colors.primary,
-		fontSize: 14,
-		fontWeight: "600",
-	},
 	button: {
 		backgroundColor: colors.primary,
 		padding: 16,
@@ -264,5 +256,8 @@ const styles = StyleSheet.create({
 		color: colors.background,
 		fontSize: 16,
 		fontWeight: "bold",
+	},
+	error: {
+		borderColor: "red",
 	},
 });
